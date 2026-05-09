@@ -18,7 +18,6 @@ theme = Catppuccin Mocha
 # --- Window and Appearance ---
 background-opacity = 0.85
 background-blur-radius = 30
-macos-titlebar-style = transparent
 window-padding-x = 10
 window-padding-y = 8
 window-save-state = always
@@ -82,7 +81,7 @@ scrollback-limit = 25000000
 
 
 # macOS-specific appearance
-#macos-titlebar-style = tabs
+macos-titlebar-style = transparent
 #macos-titlebar-proxy-icon = hidden
 macos-option-as-alt = true
 
