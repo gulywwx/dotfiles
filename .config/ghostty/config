@@ -12,8 +12,9 @@ font-thicken = true
 adjust-cell-height = 2
 
 # --- Theme and Colors ---
-# Catppuccin with automatic light/dark switching
 theme = Catppuccin Mocha
+# Catppuccin with automatic light/dark switching
+#theme = light:Catppuccin Latte,dark:Catppuccin Mocha
 
 # --- Window and Appearance ---
 background-opacity = 0.85
