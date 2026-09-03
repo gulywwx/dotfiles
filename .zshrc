@@ -1,131 +1,124 @@
-# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
-# Initialization code that may require console input (password prompts, [y/n]
-# confirmations, etc.) must go above this block; everything else may go below.
-if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
-  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+# ---- Environment ----
+export GOPATH="$HOME/Documents/bonjovi/project/Go"
+export PATH="$PATH:$GOPATH/bin"
+export HOMEBREW_NO_UPGRADE_AUTO_UPDATES_CASKS=1
+
+# ─── Homebrew ────────────────────────────────────────────────────────
+if [[ -d /opt/homebrew ]]; then
+    export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
+    BREW_PREFIX="/opt/homebrew"
+elif [[ -d /usr/local/Cellar ]]; then
+    export PATH="/usr/local/bin:/usr/local/sbin:$PATH"
+    BREW_PREFIX="/usr/local"
+else
+    BREW_PREFIX=""
 fi
 
-# If you come from bash you might have to change your $PATH.
-# export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH
+# ─── Starship prompt ────────────────────────────────────────────────
+eval "$(starship init zsh)"
 
-# Path to your Oh My Zsh installation.
-export ZSH="$HOME/.oh-my-zsh"
+# ─── Zsh plugins (via Homebrew) ──────────────────────────────────────
+# Autosuggestions (fish-like suggestions)
+if [[ -n "$BREW_PREFIX" && -f "$BREW_PREFIX/share/zsh-autosuggestions/zsh-autosuggestions.zsh" ]]; then
+    source "$BREW_PREFIX/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
+elif [[ -f /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]]; then
+    source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+    ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=8'
+    ZSH_AUTOSUGGEST_STRATEGY=(history completion)
+fi
 
-# Set name of the theme to load --- if set to "random", it will
-# load a random theme each time Oh My Zsh is loaded, in which case,
-# to know which specific one was loaded, run: echo $RANDOM_THEME
-# See https://github.com/ohmyzsh/ohmyzsh/wiki/Themes
-#ZSH_THEME="robbyrussell"
-ZSH_THEME="powerlevel10k/powerlevel10k"
+# Completions
+if [[ -n "$BREW_PREFIX" && -d "$BREW_PREFIX/share/zsh-completions" ]]; then
+    fpath=("$BREW_PREFIX/share/zsh-completions" $fpath)
+elif [[ -d /usr/share/zsh-completions ]]; then
+    fpath=(/usr/share/zsh-completions $fpath)
+fi
+autoload -Uz compinit && compinit
 
-# Set list of themes to pick from when loading at random
-# Setting this variable when ZSH_THEME=random will cause zsh to load
-# a theme from this variable instead of looking in $ZSH/themes/
-# If set to an empty array, this variable will have no effect.
-# ZSH_THEME_RANDOM_CANDIDATES=( "robbyrussell" "agnoster" )
+# Substring + case-insensitive completion
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}' 'r:|=*' 'l:|=*'
 
-# Uncomment the following line to use case-sensitive completion.
-# CASE_SENSITIVE="true"
+# ─── History ─────────────────────────────────────────────────────────
+HISTSIZE=50000
+SAVEHIST=50000
+HISTFILE=~/.zsh_history
+setopt EXTENDED_HISTORY
+setopt HIST_EXPIRE_DUPS_FIRST
+setopt HIST_IGNORE_DUPS
+setopt HIST_IGNORE_SPACE
+setopt SHARE_HISTORY
+setopt INC_APPEND_HISTORY
 
-# Uncomment the following line to use hyphen-insensitive completion.
-# Case-sensitive completion must be off. _ and - will be interchangeable.
-# HYPHEN_INSENSITIVE="true"
+# ─── History prefix search (↑/↓) ─────────────────────────────────────
+# up-line-or-beginning-search: cursor stays at prefix position,
+# matched tail shown as gray autosuggestion — type more to narrow.
+autoload -U up-line-or-beginning-search down-line-or-beginning-search
+zle -N up-line-or-beginning-search
+zle -N down-line-or-beginning-search
+bindkey '^[[A' up-line-or-beginning-search
+bindkey '^[[B' down-line-or-beginning-search
 
-# Uncomment one of the following lines to change the auto-update behavior
-# zstyle ':omz:update' mode disabled  # disable automatic updates
-# zstyle ':omz:update' mode auto      # update automatically without asking
-# zstyle ':omz:update' mode reminder  # just remind me to update when it's time
+# ─── fzf ─────────────────────────────────────────────────────────────
+if [[ -f ~/.fzf.zsh ]]; then
+    source ~/.fzf.zsh
+elif command -v fzf &>/dev/null; then
+    eval "$(fzf --zsh 2>/dev/null)"
+fi
+export FZF_DEFAULT_OPTS='--height 40% --layout=reverse --border'
+# Use fd for fzf if available
+if command -v fd &>/dev/null; then
+    export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
+    export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+    export FZF_ALT_C_COMMAND='fd --type d --hidden --follow --exclude .git'
+fi
 
-# Uncomment the following line to change how often to auto-update (in days).
-# zstyle ':omz:update' frequency 13
+# ─── Zoxide (smart cd) ──────────────────────────────────────────────
+eval "$(zoxide init zsh)"
 
-# Uncomment the following line if pasting URLs and other text is messed up.
-# DISABLE_MAGIC_FUNCTIONS="true"
+# ─── fnm (Node version manager) ─────────────────────────────────────
+if command -v fnm &>/dev/null; then
+    eval "$(fnm env --use-on-cd --shell zsh)"
+fi
 
-# Uncomment the following line to disable colors in ls.
-# DISABLE_LS_COLORS="true"
+# ─── SSH key switcher (fallback for multi-account setups) ────────────
+# Usage: set-ssh-key lewis-official-20260224
+# Prefer ~/.ssh/config Host aliases for automatic matching.
+# This is a fallback for edge cases where you need to force a specific key.
+function set-ssh-key() {
+    local key="$HOME/.ssh/$1"
+    if [[ ! -f "$key" ]]; then
+        echo "Key not found: $key" >&2
+        echo "Available keys:" >&2
+        ls ~/.ssh/*.pub 2>/dev/null | sed 's/.*\//  /; s/\.pub$//' >&2
+        return 1
+    fi
+    ssh-add -D 2>/dev/null
+    ssh-add "$key"
+    echo "Active SSH key: $1"
+}
 
-# Uncomment the following line to disable auto-setting terminal title.
-# DISABLE_AUTO_TITLE="true"
+# ─── Aliases ─────────────────────────────────────────────────────────
+alias ls='eza --icons --group-directories-first'
+alias ll='eza -la --icons --group-directories-first'
+alias lt='eza --tree --icons --level=2'
+alias cat='bat'
+alias find='fd'
+alias grep='rg'
+alias top='btop'
+alias lg='lazygit'
 
-# Uncomment the following line to enable command auto-correction.
-# ENABLE_CORRECTION="true"
+# ─── pnpm ────────────────────────────────────────────────────────────
+export PNPM_HOME="$HOME/Library/pnpm"
+case ":$PATH:" in
+    *":$PNPM_HOME:"*) ;;
+    *) export PATH="$PNPM_HOME:$PATH" ;;
+esac
 
-# Uncomment the following line to display red dots whilst waiting for completion.
-# You can also set it to another string to have that shown instead of the default red dots.
-# e.g. COMPLETION_WAITING_DOTS="%F{yellow}waiting...%f"
-# Caution: this setting can cause issues with multiline prompts in zsh < 5.7.1 (see #5765)
-# COMPLETION_WAITING_DOTS="true"
-
-# Uncomment the following line if you want to disable marking untracked files
-# under VCS as dirty. This makes repository status check for large repositories
-# much, much faster.
-# DISABLE_UNTRACKED_FILES_DIRTY="true"
-
-# Uncomment the following line if you want to change the command execution time
-# stamp shown in the history command output.
-# You can set one of the optional three formats:
-# "mm/dd/yyyy"|"dd.mm.yyyy"|"yyyy-mm-dd"
-# or set a custom format using the strftime function format specifications,
-# see 'man strftime' for details.
-# HIST_STAMPS="mm/dd/yyyy"
-
-# Would you like to use another custom folder than $ZSH/custom?
-# ZSH_CUSTOM=/path/to/new-custom-folder
-
-# Which plugins would you like to load?
-# Standard plugins can be found in $ZSH/plugins/
-# Custom plugins may be added to $ZSH_CUSTOM/plugins/
-# Example format: plugins=(rails git textmate ruby lighthouse)
-# Add wisely, as too many plugins slow down shell startup.
-plugins=(
-  git
-  zsh-completions
-  zsh-autosuggestions
-  zsh-syntax-highlighting
-)
-
-
-source $ZSH/oh-my-zsh.sh
-
-# User configuration
-export GOPATH=/Users/xuefengxu/Documents/bonjovi/project/Go
-
-export PATH="$PATH:/usr/local/bin:/Users/xuefengxu/Documents/bonjovi/project/Go/bin"
-
-
-# export MANPATH="/usr/local/man:$MANPATH"
-
-# You may need to manually set your language environment
-# export LANG=en_US.UTF-8
-
-# Preferred editor for local and remote sessions
-# if [[ -n $SSH_CONNECTION ]]; then
-#   export EDITOR='vim'
-# else
-#   export EDITOR='nvim'
-# fi
-
-# Compilation flags
-# export ARCHFLAGS="-arch $(uname -m)"
-
-# Set personal aliases, overriding those provided by Oh My Zsh libs,
-# plugins, and themes. Aliases can be placed here, though Oh My Zsh
-# users are encouraged to define aliases within a top-level file in
-# the $ZSH_CUSTOM folder, with .zsh extension. Examples:
-# - $ZSH_CUSTOM/aliases.zsh
-# - $ZSH_CUSTOM/macos.zsh
-# For a full list of active aliases, run `alias`.
-#
-# Example aliases
-# alias zshconfig="mate ~/.zshrc"
-# alias ohmyzsh="mate ~/.oh-my-zsh"
-
-alias ls='eza --icons --git --group-directories-first'
-alias ll='eza -lh --icons --git --group-directories-first'
-alias lt='eza --tree --level=2 --icons'
-
-# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
-[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
-
-source <(fzf --zsh)
+# ─── zsh-syntax-highlighting ──────────────────────────────────────────
+# Load this at the very end of .zshrc so widgets created by compinit,
+# zle -N, and other plugins are included in syntax highlighting.
+if [[ -n "$BREW_PREFIX" && -f "$BREW_PREFIX/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]]; then
+    source "$BREW_PREFIX/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+elif [[ -f /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]]; then
+    source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+fi
