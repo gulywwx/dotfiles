@@ -40,10 +40,20 @@ if [[ -n "$BREW_PREFIX" && -d "$BREW_PREFIX/share/zsh-completions" ]]; then
 elif [[ -d /usr/share/zsh-completions ]]; then
     fpath=(/usr/share/zsh-completions $fpath)
 fi
+
+export LS_COLORS='di=01;34:ln=01;36:so=01;35:pi=33:ex=01;32:bd=33;01:cd=33;01:su=41;30:sg=46;30:tw=42;30:ow=43;30'
+
 autoload -Uz compinit && compinit
 
-# Substring + case-insensitive completion
+# completion
 zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}' 'r:|=*' 'l:|=*'
+zstyle ':completion:*' menu select
+zstyle ':completion:*' menu select=1
+zstyle ':completion:*' group-name ''
+zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
+zstyle ':completion:*' select-prompt '%S%p%s'
+zstyle ':completion:*' verbose yes
+
 
 # ─── History ─────────────────────────────────────────────────────────
 HISTSIZE=50000
