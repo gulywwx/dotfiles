@@ -14,6 +14,13 @@ else
     BREW_PREFIX=""
 fi
 
+
+# ─── OpenJDK ─────────────────────────────────────────────────
+if [[ -n "$BREW_PREFIX" && -d "$BREW_PREFIX/opt/openjdk" ]]; then
+export JAVA_HOME="$BREW_PREFIX/opt/openjdk/libexec/openjdk.jdk/Contents/Home"
+export PATH="$BREW_PREFIX/opt/openjdk/bin:$PATH"
+fi
+
 # ─── Starship prompt ────────────────────────────────────────────────
 eval "$(starship init zsh)"
 
