@@ -86,4 +86,10 @@ macos-titlebar-style = transparent
 #macos-titlebar-proxy-icon = hidden
 macos-option-as-alt = true
 
+# ---  release build ---
+auto-update-channel = tip
+
+
 term = xterm-256color
+
+
